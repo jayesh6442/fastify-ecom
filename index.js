@@ -5,11 +5,11 @@ const fastify = Fastify({
 })
 
 
-fastify.get("/one", (req, res) => {
+fastify.get("/one", async (req, res) => {
     res.send("hi there we are in the fastify ")
 })
 
 
-fastify.listen(3000 , ()=>{
+fastify.listen(3000, () => {
     console.log("Running Server On Port: 3000");
 })
