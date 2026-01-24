@@ -1,15 +1,34 @@
-// src/app.ts
+// // src/app.ts
+// import Fastify from 'fastify';
+
+// export function buildApp() {
+//     const app = Fastify({
+//         logger: true,
+//         disableRequestLogging: false,
+//         requestTimeout: 30_000
+//     });
+
+//     app.get('/health', async () => {
+//         return { status: 'ok' };
+//     });
+
+//     return app;
+// }
+
+
 import Fastify from 'fastify';
+import { dbPlugin } from './plugins/db.js';
+import { orderRoutes, productRoutes } from './modules/products/route.js';
 
 export function buildApp() {
-    const app = Fastify({
-        logger: true,
-        disableRequestLogging: false,
-        requestTimeout: 30_000
-    });
+    const app = Fastify({ logger: true });
 
-    app.get('/health', async () => {
-        return { status: 'ok' };
+    app.register(dbPlugin);
+    app.register(productRoutes);
+    app.register(orderRoutes);
+    app.get('/health', async (req, reply) => {
+        const result = await app.db.query('SELECT 1');
+        return { status: 'ok', db: result.rowCount === 1 };
     });
 
     return app;

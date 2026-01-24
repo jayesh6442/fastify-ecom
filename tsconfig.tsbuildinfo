@@ -1,1 +1,1 @@
-{"root":["./src/app.ts","./src/server.ts"],"version":"5.9.3"}
+{"root":["./src/app.ts","./src/server.ts","./src/typed.d.ts","./src/db/migrate.ts","./src/db/pool.ts","./src/modules/orders/query.ts","./src/modules/products/handlers.ts","./src/modules/products/query.ts","./src/modules/products/route.ts","./src/modules/products/schemas.ts","./src/plugins/db.ts"],"version":"5.9.3"}
