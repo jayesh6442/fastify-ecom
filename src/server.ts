@@ -1,10 +1,8 @@
-// src/server.ts
-
+// import "fein-log"
 import { buildApp } from "./app.js";
-
+console.log("faaaaaa");
 async function start() {
     const app = buildApp();
-
     try {
         await app.listen({ port: 3000, host: '0.0.0.0' });
         app.log.info('Server started');
@@ -13,5 +11,4 @@ async function start() {
         process.exit(1);
     }
 }
-
 start();
