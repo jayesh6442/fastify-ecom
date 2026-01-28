@@ -15,6 +15,11 @@ async function errorHandlerPlugin(app) {
             });
         }
         if (error.code === '23505') { // Unique violation
+            if (error.message.includes('products_name_unique')) {
+                return reply.code(409).send({
+                    error: 'Product with this name already exists'
+                });
+            }
             return reply.code(409).send({
                 error: 'Resource already exists'
             });

@@ -14,10 +14,31 @@ export async function listProducts(db, limit, offset) {
     `, [limit, offset]);
     return result.rows;
 }
+export async function getProductByName(db, name) {
+    const result = await db.query(`
+    SELECT id, name
+    FROM products
+    WHERE name = $1
+    `, [name]);
+    if (!result.rowCount || result.rowCount === 0) {
+        return null;
+    }
+    return result.rows[0] ?? null;
+}
 export async function createProduct(db, name, priceCents, initialQty) {
     const client = await db.connect();
     try {
         await client.query('BEGIN');
+        // Check if product with same name already exists
+        const existing = await client.query(`
+      SELECT id
+      FROM products
+      WHERE name = $1
+      `, [name]);
+        if (existing.rowCount && existing.rowCount > 0) {
+            await client.query('ROLLBACK');
+            throw new Error('Product with this name already exists');
+        }
         const productRes = await client.query(`
       INSERT INTO products (name, price_cents)
       VALUES ($1, $2)

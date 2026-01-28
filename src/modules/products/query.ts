@@ -24,6 +24,26 @@ export async function listProducts(
     return result.rows;
 }
 
+export async function getProductByName(
+    db: Pool,
+    name: string
+) {
+    const result = await db.query<{ id: number; name: string }>(
+        `
+    SELECT id, name
+    FROM products
+    WHERE name = $1
+    `,
+        [name]
+    );
+
+    if (!result.rowCount || result.rowCount === 0) {
+        return null;
+    }
+
+    return result.rows[0] ?? null;
+}
+
 export async function createProduct(
     db: Pool,
     name: string,
@@ -34,6 +54,21 @@ export async function createProduct(
 
     try {
         await client.query('BEGIN');
+
+        // Check if product with same name already exists
+        const existing = await client.query<{ id: number }>(
+            `
+      SELECT id
+      FROM products
+      WHERE name = $1
+      `,
+            [name]
+        );
+
+        if (existing.rowCount && existing.rowCount > 0) {
+            await client.query('ROLLBACK');
+            throw new Error('Product with this name already exists');
+        }
 
         const productRes = await client.query<{ id: number }>(
             `

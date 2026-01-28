@@ -10,6 +10,7 @@ declare module 'fastify' {
             get(key: string): Promise<any | null>;
             set(key: string, value: any, ttlSeconds?: number): Promise<void>;
             del(key: string): Promise<void>;
+            getCacheType(): 'redis' | 'memory';
         };
     }
 

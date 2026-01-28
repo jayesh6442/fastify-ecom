@@ -1,18 +1,16 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ecom
-      POSTGRES_PASSWORD: ecom
-      POSTGRES_DB: ecom
+      POSTGRES_USER: ${DB_USER:-ecom}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ecom}
+      POSTGRES_DB: ${DB_NAME:-ecom}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ecom"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ecom}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,17 +30,24 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     environment:
-      NODE_ENV: production
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      NODE_ENV: ${NODE_ENV:-production}
+      JWT_SECRET: ${JWT_SECRET}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       REDIS_URL: redis://redis:6379
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      # Database connection for app
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-ecom}
+      DB_PASSWORD: ${DB_PASSWORD:-ecom}
+      DB_NAME: ${DB_NAME:-ecom}
     depends_on:
       postgres:
         condition: service_healthy

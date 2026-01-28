@@ -10,6 +10,7 @@ import { orderRoutes } from './modules/orders/routes.js';
 import { userRoutes } from './modules/users/routes.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { inventoryRoutes } from './modules/inventory/routes.js';
+import { cacheRoutes } from './modules/cache/routes.js';
 export function buildApp() {
     const loggerConfig = {
         level: process.env.LOG_LEVEL || 'info'
@@ -43,6 +44,7 @@ export function buildApp() {
         app.register(orderRoutes, { prefix: '/v1' });
         app.register(userRoutes, { prefix: '/v1' });
         app.register(inventoryRoutes, { prefix: '/v1' });
+        app.register(cacheRoutes);
     });
     return app;
 }

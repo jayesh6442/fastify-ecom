@@ -1,237 +1,199 @@
-# Quick Start Guide
+# E-Commerce Backend API
 
-## 🚀 Getting Started
+A production-ready e-commerce backend API built with Fastify, PostgreSQL, and TypeScript.
 
-### 1. Setup Database
-```bash
-# Ensure PostgreSQL is running
-# Update src/db/pool.ts with your DB credentials if needed
-```
+## Features
 
-### 2. Run Migrations
-```bash
-npm run build
-node dist/db/migrate.js
-```
+- ✅ Authentication & Authorization (JWT, RBAC)
+- ✅ Product Management
+- ✅ Inventory Management with Audit Logging
+- ✅ Order Processing with State Machine
+- ✅ Payment Integration (Stripe)
+- ✅ Email Notifications
+- ✅ Rate Limiting
+- ✅ API Versioning (v1)
+- ✅ Caching Layer (Redis/in-memory)
+- ✅ Comprehensive Error Handling
+- ✅ Observability & Monitoring
+- ✅ Docker Support
+- ✅ CI/CD Pipeline
 
-### 3. Start Server
-```bash
-npm run dev
-# Server runs on http://localhost:3000
-```
+## Quick Start
 
-### 4. Test the API
-```bash
-./test-api.sh
-# Or follow TESTING_GUIDE.md for manual testing
-```
+### Prerequisites
 
----
+- Node.js 20+
+- PostgreSQL 16+
+- Redis (optional, falls back to in-memory cache)
+- Docker & Docker Compose (optional)
 
-## 📋 What We Built - Summary
+### Installation
 
-### Core Features
-1. **Authentication System**
-   - User registration & login
-   - JWT token-based auth
-   - Role-based access (USER/ADMIN)
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd ingress
+   ```
 
-2. **Product Management**
-   - List products (public)
-   - Create products (admin only)
-   - Active/inactive status
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-3. **Inventory Management**
-   - Add/remove stock (admin only)
-   - Audit logging
-   - Transactional safety
+3. **Set up environment variables:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
-4. **Order Processing**
-   - Create orders (with idempotency)
-   - View orders (user's own or all for admin)
-   - Pay orders
-   - Cancel orders (restores inventory)
+4. **Run migrations:**
+   ```bash
+   npm run build
+   npm run migrate
+   ```
 
-5. **Error Handling**
-   - Centralized error handler
-   - User-friendly messages
-   - Database error mapping
+5. **Start the server:**
+   ```bash
+   npm run dev
+   ```
 
-6. **Observability**
-   - Request/response logging
-   - Slow query detection
-   - Connection pool monitoring
+The server will start on `http://localhost:3000`
 
----
+## Docker Setup
 
-## 🔄 Application Flow
+1. **Create `.env` file** (see `.env.example`)
 
-### User Journey
-```
-1. Register → Get JWT Token
-2. Browse Products → GET /products
-3. Create Order → POST /orders (requires Idempotency-Key)
-4. View Orders → GET /me/orders
-5. Pay Order → POST /orders/:id/pay
-```
+2. **Start all services:**
+   ```bash
+   docker-compose up -d
+   ```
 
-### Admin Journey
-```
-1. Login as Admin → Get JWT Token
-2. Create Product → POST /products
-3. Manage Inventory → POST /inventory/:id/add|remove
-4. View All Orders → GET /admin/orders
-```
+3. **View logs:**
+   ```bash
+   docker-compose logs -f app
+   ```
 
----
+4. **Stop services:**
+   ```bash
+   docker-compose down
+   ```
 
-## 🔐 Security Model
+## Environment Variables
 
-- **Authentication**: JWT tokens in `Authorization: Bearer <token>` header
-- **Authorization**: Role-based (USER vs ADMIN)
-- **Password Security**: bcrypt hashing (10 rounds)
-- **Data Protection**: Users can only see their own orders
+See [ENV_SETUP.md](./ENV_SETUP.md) for detailed environment variable documentation.
 
----
+Key variables:
+- `JWT_SECRET` - Required for JWT token signing
+- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` - Database configuration
+- `REDIS_URL` - Redis connection (optional)
+- `SMTP_*` - Email configuration (optional)
+- `STRIPE_SECRET_KEY` - Payment processing (optional)
 
-## 📊 Key Behaviors
+## API Endpoints
 
-### Order Creation
-- Validates product is active
-- Locks inventory row
-- Deducts inventory atomically
-- Idempotent (same key = same order)
-- Creates order with status='CREATED'
-
-### Order Payment
-- Validates state (must be CREATED)
-- Updates status to PAID
-- Prevents duplicate payments
-
-### Order Cancellation
-- Validates state (must be CREATED)
-- Updates status to CANCELLED
-- Restores inventory automatically
-- Logs audit trail
-
-### Inventory Management
-- Row-level locking (prevents race conditions)
-- Transactional (all-or-nothing)
-- Audit logging (all changes tracked)
-- Validation (no negative quantities)
-
----
-
-## 🗄️ Database Structure
-
-**Tables**:
-- `users` - User accounts with roles
-- `products` - Product catalog
-- `inventory` - Stock levels
-- `orders` - Order records
-- `inventory_audit` - Change history
-
-**Key Constraints**:
-- Foreign keys (referential integrity)
-- CHECK constraints (no negative inventory, valid statuses)
-- Unique constraints (email, idempotency_key)
-
----
-
-## 📝 API Endpoints
+All routes are versioned under `/v1`:
 
 ### Public
 - `GET /health` - Health check
-- `GET /products` - List products
-- `POST /auth/register` - Register
-- `POST /auth/login` - Login
+- `GET /v1/products` - List products
+- `POST /v1/auth/register` - Register user
+- `POST /v1/auth/login` - Login user
 
 ### User (requires auth)
-- `POST /orders` - Create order
-- `GET /orders/:id` - Get order
-- `GET /me/orders` - List my orders
-- `POST /orders/:id/pay` - Pay order
-- `POST /orders/:id/cancel` - Cancel order
+- `POST /v1/orders` - Create order
+- `GET /v1/orders/:id` - Get order
+- `GET /v1/me/orders` - List user orders
+- `POST /v1/orders/:id/pay` - Pay order
+- `POST /v1/orders/:id/cancel` - Cancel order
+- `POST /v1/orders/:id/payment` - Create payment intent
+- `POST /v1/orders/:id/payment/confirm` - Confirm payment
 
 ### Admin (requires admin role)
-- `POST /products` - Create product
-- `POST /inventory/:id/add` - Add stock
-- `POST /inventory/:id/remove` - Remove stock
-- `GET /admin/orders` - List all orders
+- `POST /v1/products` - Create product
+- `POST /v1/inventory/:productId/add` - Add inventory
+- `POST /v1/inventory/:productId/remove` - Remove inventory
+- `GET /v1/admin/orders` - List all orders
 
----
+## Testing
 
-## 🐛 Error Handling
+### Run API Tests
+```bash
+# Make sure server is running
+npm run dev
 
-All errors are:
-- Logged with full details (for debugging)
-- Mapped to user-friendly messages
-- Returned with appropriate HTTP status codes
-- Never leak sensitive information
+# In another terminal
+./test-api.sh
+```
 
-**Common Errors**:
-- `401` - Unauthorized (missing/invalid token)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Not Found (resource doesn't exist)
-- `409` - Conflict (insufficient inventory, duplicate)
-- `400` - Bad Request (invalid input, invalid state)
+### Run Unit Tests
+```bash
+npm test
+```
 
----
+### Run Tests with Coverage
+```bash
+npm run test:coverage
+```
 
-## 📈 Observability
+## Project Structure
 
-**What's Monitored**:
-- Every request (method, URL, status, duration)
-- Slow requests (>1 second)
-- Database connection pool status
-- Order lifecycle events
+```
+src/
+├── modules/          # Feature modules
+│   ├── auth/        # Authentication
+│   ├── products/    # Product management
+│   ├── orders/      # Order processing
+│   ├── inventory/   # Inventory management
+│   └── users/       # User management
+├── plugins/         # Fastify plugins
+│   ├── db.ts       # Database plugin
+│   ├── jwt.ts      # JWT plugin
+│   ├── cache.ts    # Caching plugin
+│   └── ...
+├── services/        # External services
+│   ├── payment.ts  # Stripe integration
+│   └── email.ts    # Email service
+├── db/              # Database
+│   ├── migrations/ # SQL migrations
+│   └── pool.ts     # Connection pool
+└── __tests__/       # Test files
+```
 
-**Logs Include**:
-- Request timing
-- User ID and role
-- Error details (server-side only)
-- Database pool metrics
+## Documentation
 
----
+- [APPLICATION_OVERVIEW.md](./APPLICATION_OVERVIEW.md) - Complete technical overview
+- [TESTING_GUIDE.md](./TESTING_GUIDE.md) - Detailed testing instructions
+- [ENHANCEMENTS.md](./ENHANCEMENTS.md) - Enhancement features
+- [ENV_SETUP.md](./ENV_SETUP.md) - Environment variables guide
 
-## ✅ Production Ready Features
+## Development
 
-- ✅ Transactional safety (ACID)
-- ✅ Row-level locking (race condition prevention)
-- ✅ Idempotency (duplicate prevention)
-- ✅ Audit logging (change tracking)
-- ✅ Error handling (user-friendly)
-- ✅ Security (password hashing, JWT)
-- ✅ Observability (logging, monitoring)
-- ✅ Type safety (TypeScript)
-- ✅ Modular architecture
+```bash
+# Development mode (with hot reload)
+npm run dev
 
----
+# Build
+npm run build
 
-## 📚 Documentation Files
+# Run migrations
+npm run migrate
 
-- **APPLICATION_OVERVIEW.md** - Complete technical overview
-- **TESTING_GUIDE.md** - Detailed testing instructions
-- **test-api.sh** - Automated test script
-- **QUICK_START.md** - This file
+# Start production server
+npm start
+```
 
----
+## Production Deployment
 
-## 🎯 Next Steps
+1. Set production environment variables
+2. Build the application: `npm run build`
+3. Run migrations: `npm run migrate`
+4. Start server: `npm start`
 
-1. **Test the API**: Run `./test-api.sh`
-2. **Read Documentation**: Check APPLICATION_OVERVIEW.md
-3. **Explore Endpoints**: Use TESTING_GUIDE.md
-4. **Monitor Logs**: Watch server output for observability metrics
+Or use Docker:
+```bash
+docker-compose up -d
+```
 
----
+## License
 
-## 💡 Tips
-
-- Always include `Idempotency-Key` header when creating orders
-- Use JWT token in `Authorization: Bearer <token>` header
-- Check server logs for detailed request/response info
-- Database pool status is logged every 60 seconds
-- Slow requests (>1s) are logged as warnings
-
-
+ISC

@@ -5,7 +5,7 @@ type ListRequest = FastifyRequest<{
         offset?: number;
     };
 }>;
-export declare function listProductsHandler(request: ListRequest): Promise<any[]>;
+export declare function listProductsHandler(request: ListRequest): Promise<any>;
 export declare function createProductHandler(request: FastifyRequest, reply: FastifyReply): Promise<{
     id: number;
 }>;
