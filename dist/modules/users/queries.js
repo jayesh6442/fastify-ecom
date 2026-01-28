@@ -1,10 +1,10 @@
 import { Pool } from 'pg';
-export async function createUser(db, email, passwordHash) {
+export async function createUser(db, email, passwordHash, role = 'USER') {
     const result = await db.query(`
-    INSERT INTO users (email, password_hash)
-    VALUES ($1, $2)
+    INSERT INTO users (email, password_hash, role)
+    VALUES ($1, $2, $3)
     RETURNING id
-    `, [email, passwordHash]);
+    `, [email, passwordHash, role]);
     const user = result.rows[0];
     if (!user) {
         throw new Error('Failed to create user');

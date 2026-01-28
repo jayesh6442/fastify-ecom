@@ -1,10 +1,15 @@
-import { createOrder } from './query.js';
+import { createOrder, getOrderById, getUserOrders, getAllOrders, updateOrderStatus, restoreInventoryForOrder } from './query.js';
 export async function createOrderHandler(request, reply) {
+    if (!request.user) {
+        return reply.code(401).send({ error: 'Unauthorized' });
+    }
     const key = request.headers['idempotency-key'];
     if (!key || typeof key !== 'string') {
         return reply.code(400).send({ error: 'Missing Idempotency-Key header' });
     }
-    const { user_id, product_id, quantity } = request.body;
+    const body = request.body;
+    const { product_id, quantity } = body;
+    const user_id = request.user.id;
     try {
         return await createOrder(request.server.db, user_id, product_id, quantity, key);
     }
@@ -13,6 +18,141 @@ export async function createOrderHandler(request, reply) {
             if (error.message === 'Inventory not found' || error.message === 'Insufficient inventory') {
                 return reply.code(400).send({ error: error.message });
             }
+        }
+        throw error;
+    }
+}
+export async function getOrderByIdHandler(request, reply) {
+    if (!request.user) {
+        return reply.code(401).send({ error: 'Unauthorized' });
+    }
+    const params = request.params;
+    const orderId = Number(params.id);
+    if (isNaN(orderId) || orderId <= 0) {
+        return reply.code(400).send({ error: 'Invalid order ID' });
+    }
+    try {
+        // Users can only see their own orders, admins can see any
+        const user = request.user;
+        const userId = user.role === 'ADMIN' ? undefined : user.id;
+        const order = await getOrderById(request.server.db, orderId, userId);
+        if (!order) {
+            return reply.code(404).send({ error: 'Order not found' });
+        }
+        return order;
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            return reply.code(500).send({ error: error.message });
+        }
+        throw error;
+    }
+}
+export async function getUserOrdersHandler(request, reply) {
+    if (!request.user) {
+        return reply.code(401).send({ error: 'Unauthorized' });
+    }
+    const query = request.query;
+    const limit = Math.min(query.limit ?? 20, 100);
+    const offset = query.offset ?? 0;
+    try {
+        const user = request.user;
+        const orders = await getUserOrders(request.server.db, user.id, limit, offset);
+        return orders;
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            return reply.code(500).send({ error: error.message });
+        }
+        throw error;
+    }
+}
+export async function getAllOrdersHandler(request, reply) {
+    const user = request.user;
+    if (!user || user.role !== 'ADMIN') {
+        return reply.code(403).send({ error: 'Forbidden: Admin access required' });
+    }
+    const query = request.query;
+    const limit = Math.min(query.limit ?? 20, 100);
+    const offset = query.offset ?? 0;
+    try {
+        const orders = await getAllOrders(request.server.db, limit, offset);
+        return orders;
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            return reply.code(500).send({ error: error.message });
+        }
+        throw error;
+    }
+}
+export async function payOrderHandler(request, reply) {
+    if (!request.user) {
+        return reply.code(401).send({ error: 'Unauthorized' });
+    }
+    const params = request.params;
+    const orderId = Number(params.id);
+    if (isNaN(orderId) || orderId <= 0) {
+        return reply.code(400).send({ error: 'Invalid order ID' });
+    }
+    try {
+        const user = request.user;
+        // Get order first to check ownership
+        const order = await getOrderById(request.server.db, orderId, user.role === 'ADMIN' ? undefined : user.id);
+        if (!order) {
+            return reply.code(404).send({ error: 'Order not found' });
+        }
+        const result = await updateOrderStatus(request.server.db, orderId, 'PAID', 'CREATED');
+        return result;
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            if (error.message === 'Order not found') {
+                return reply.code(404).send({ error: error.message });
+            }
+            if (error.message.includes('cannot transition')) {
+                return reply.code(400).send({ error: error.message });
+            }
+            return reply.code(500).send({ error: error.message });
+        }
+        throw error;
+    }
+}
+export async function cancelOrderHandler(request, reply) {
+    if (!request.user) {
+        return reply.code(401).send({ error: 'Unauthorized' });
+    }
+    const params = request.params;
+    const body = request.body;
+    const orderId = Number(params.id);
+    if (isNaN(orderId) || orderId <= 0) {
+        return reply.code(400).send({ error: 'Invalid order ID' });
+    }
+    try {
+        const user = request.user;
+        // Get order first to check ownership
+        const order = await getOrderById(request.server.db, orderId, user.role === 'ADMIN' ? undefined : user.id);
+        if (!order) {
+            return reply.code(404).send({ error: 'Order not found' });
+        }
+        // Update order status
+        const result = await updateOrderStatus(request.server.db, orderId, 'CANCELLED', 'CREATED');
+        // Restore inventory if product_id and quantity provided
+        // Note: In a real system, we'd get this from order_items table
+        if (body.product_id && body.quantity) {
+            await restoreInventoryForOrder(request.server.db, body.product_id, body.quantity);
+        }
+        return result;
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            if (error.message === 'Order not found' || error.message === 'Inventory not found') {
+                return reply.code(404).send({ error: error.message });
+            }
+            if (error.message.includes('cannot transition')) {
+                return reply.code(400).send({ error: error.message });
+            }
+            return reply.code(500).send({ error: error.message });
         }
         throw error;
     }
