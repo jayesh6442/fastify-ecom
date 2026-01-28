@@ -21,16 +21,11 @@ export async function listProductsHandler(
 }
 
 export async function createProductHandler(
-    request: FastifyRequest<{
-        Body: {
-            name: string;
-            price_cents: number;
-            initial_quantity: number;
-        };
-    }>,
+    request: FastifyRequest,
     reply: FastifyReply
 ) {
-    const { name, price_cents, initial_quantity } = request.body;
+    const body = request.body as { name: string; price_cents: number; initial_quantity: number };
+    const { name, price_cents, initial_quantity } = body;
 
     try {
         return await createProduct(

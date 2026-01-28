@@ -1,5 +1,6 @@
 import { createOrderBody } from './schemas.js';
 import { createOrderHandler, getOrderByIdHandler, getUserOrdersHandler, getAllOrdersHandler, payOrderHandler, cancelOrderHandler } from './handlers.js';
+import { createPaymentHandler, confirmPaymentHandler } from './payment-handlers.js';
 import { requireUser, requireAdmin } from '../../utils/auth.js';
 export async function orderRoutes(app) {
     app.post('/orders', {
@@ -68,12 +69,40 @@ export async function orderRoutes(app) {
             },
             body: {
                 type: 'object',
-                properties: {
-                    product_id: { type: 'number' },
-                    quantity: { type: 'number' }
-                }
+                properties: {}
             }
         }
     }, cancelOrderHandler);
+    app.post('/orders/:id/payment', {
+        preHandler: [requireUser],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: {
+                    id: { type: 'string' }
+                }
+            }
+        }
+    }, createPaymentHandler);
+    app.post('/orders/:id/payment/confirm', {
+        preHandler: [requireUser],
+        schema: {
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: {
+                    id: { type: 'string' }
+                }
+            },
+            body: {
+                type: 'object',
+                required: ['payment_intent_id'],
+                properties: {
+                    payment_intent_id: { type: 'string' }
+                }
+            }
+        }
+    }, confirmPaymentHandler);
 }
 //# sourceMappingURL=routes.js.map

@@ -8,6 +8,12 @@ export declare function getOrderById(db: Pool, orderId: number, userId?: number)
     status: string;
     total_cents: number;
     created_at: string;
+    items: Array<{
+        id: number;
+        product_id: number;
+        quantity: number;
+        price_cents: number;
+    }>;
 } | null>;
 export declare function getUserOrders(db: Pool, userId: number, limit?: number, offset?: number): Promise<{
     id: number;
@@ -29,5 +35,9 @@ export declare function updateOrderStatus(db: Pool, orderId: number, newStatus: 
     old_status: "CREATED";
     new_status: "PAID" | "CANCELLED";
 }>;
-export declare function restoreInventoryForOrder(db: Pool, productId: number, quantity: number): Promise<void>;
+export declare function getOrderItems(db: Pool, orderId: number): Promise<{
+    product_id: number;
+    quantity: number;
+}[]>;
+export declare function restoreInventoryForOrder(db: Pool, orderId: number): Promise<void>;
 //# sourceMappingURL=query.d.ts.map

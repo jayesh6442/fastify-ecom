@@ -4,7 +4,8 @@ export async function listProductsHandler(request) {
     return listProducts(request.server.db, limit, offset);
 }
 export async function createProductHandler(request, reply) {
-    const { name, price_cents, initial_quantity } = request.body;
+    const body = request.body;
+    const { name, price_cents, initial_quantity } = body;
     try {
         return await createProduct(request.server.db, name, price_cents, initial_quantity);
     }

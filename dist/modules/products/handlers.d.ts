@@ -6,13 +6,7 @@ type ListRequest = FastifyRequest<{
     };
 }>;
 export declare function listProductsHandler(request: ListRequest): Promise<any[]>;
-export declare function createProductHandler(request: FastifyRequest<{
-    Body: {
-        name: string;
-        price_cents: number;
-        initial_quantity: number;
-    };
-}>, reply: FastifyReply): Promise<{
+export declare function createProductHandler(request: FastifyRequest, reply: FastifyReply): Promise<{
     id: number;
 }>;
 export {};

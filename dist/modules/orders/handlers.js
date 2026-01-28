@@ -1,4 +1,5 @@
-import { createOrder, getOrderById, getUserOrders, getAllOrders, updateOrderStatus, restoreInventoryForOrder } from './query.js';
+import { createOrder, getOrderById, getUserOrders, getAllOrders, updateOrderStatus, restoreInventoryForOrder, getOrderItems } from './query.js';
+import { sendOrderConfirmationEmail, sendOrderPaidEmail, sendOrderCancelledEmail } from '../../services/email.js';
 export async function createOrderHandler(request, reply) {
     if (!request.user) {
         return reply.code(401).send({ error: 'Unauthorized' });
@@ -11,7 +12,16 @@ export async function createOrderHandler(request, reply) {
     const { product_id, quantity } = body;
     const user_id = request.user.id;
     try {
-        return await createOrder(request.server.db, user_id, product_id, quantity, key);
+        const result = await createOrder(request.server.db, user_id, product_id, quantity, key);
+        // Send order confirmation email
+        const user = request.user;
+        const order = await getOrderById(request.server.db, result.order_id, user_id);
+        if (order) {
+            sendOrderConfirmationEmail(user.email, result.order_id, order.total_cents).catch(err => {
+                request.server.log.error({ err, orderId: result.order_id }, 'Failed to send order confirmation email');
+            });
+        }
+        return result;
     }
     catch (error) {
         if (error instanceof Error) {
@@ -103,6 +113,12 @@ export async function payOrderHandler(request, reply) {
             return reply.code(404).send({ error: 'Order not found' });
         }
         const result = await updateOrderStatus(request.server.db, orderId, 'PAID', 'CREATED');
+        // Send email notification
+        if (order) {
+            sendOrderPaidEmail(user.email, orderId).catch(err => {
+                request.server.log.error({ err, orderId }, 'Failed to send payment email');
+            });
+        }
         return result;
     }
     catch (error) {
@@ -137,10 +153,13 @@ export async function cancelOrderHandler(request, reply) {
         }
         // Update order status
         const result = await updateOrderStatus(request.server.db, orderId, 'CANCELLED', 'CREATED');
-        // Restore inventory if product_id and quantity provided
-        // Note: In a real system, we'd get this from order_items table
-        if (body.product_id && body.quantity) {
-            await restoreInventoryForOrder(request.server.db, body.product_id, body.quantity);
+        // Restore inventory from order_items
+        await restoreInventoryForOrder(request.server.db, orderId);
+        // Send email notification
+        if (order) {
+            sendOrderCancelledEmail(user.email, orderId).catch(err => {
+                request.server.log.error({ err, orderId }, 'Failed to send cancellation email');
+            });
         }
         return result;
     }

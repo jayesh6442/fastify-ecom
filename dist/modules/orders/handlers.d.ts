@@ -8,6 +8,12 @@ export declare function getOrderByIdHandler(request: FastifyRequest, reply: Fast
     status: string;
     total_cents: number;
     created_at: string;
+    items: Array<{
+        id: number;
+        product_id: number;
+        quantity: number;
+        price_cents: number;
+    }>;
 }>;
 export declare function getUserOrdersHandler(request: FastifyRequest, reply: FastifyReply): Promise<{
     id: number;
