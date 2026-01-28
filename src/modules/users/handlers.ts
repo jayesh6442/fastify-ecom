@@ -1,4 +1,4 @@
-import type { FastifyRequest } from "fastify";
+import type { FastifyRequest, FastifyReply } from "fastify";
 import { createUser, getUserById } from "./queries.js";
 
 type CreateUserRequest = FastifyRequest<{
@@ -27,9 +27,14 @@ export async function createUserHandler(
 }
 
 export async function getUserHandler(
-    request: GetUserRequest
+    request: GetUserRequest,
+    reply: FastifyReply
 ) {
     const id = Number(request.params.id);
+
+    if (isNaN(id) || id <= 0) {
+        return reply.code(400).send({ error: 'Invalid user ID' });
+    }
 
     const user = await getUserById(
         request.server.db,
@@ -37,7 +42,7 @@ export async function getUserHandler(
     );
 
     if (!user) {
-        throw new Error('User not found');
+        return reply.code(404).send({ error: 'User not found' });
     }
 
     return user;

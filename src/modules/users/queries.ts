@@ -14,14 +14,23 @@ export async function createUser(
         [email, passwordHash]
     );
 
-    return { id: result.rows?.[0]?.id };
+    const user = result.rows[0];
+    if (!user) {
+        throw new Error('Failed to create user');
+    }
+
+    return { id: user.id };
 }
 
 export async function getUserById(
     db: Pool,
     id: number
 ) {
-    const result = await db.query(
+    const result = await db.query<{
+        id: number;
+        email: string;
+        created_at: string;
+    }>(
         `
     SELECT id, email, created_at
     FROM users
@@ -30,9 +39,9 @@ export async function getUserById(
         [id]
     );
 
-    if (result.rowCount === 0) {
+    if (!result.rowCount || result.rowCount === 0) {
         return null;
     }
 
-    return result.rows[0];
+    return result.rows[0] ?? null;
 }

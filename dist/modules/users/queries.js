@@ -5,7 +5,11 @@ export async function createUser(db, email, passwordHash) {
     VALUES ($1, $2)
     RETURNING id
     `, [email, passwordHash]);
-    return { id: result.rows?.[0]?.id };
+    const user = result.rows[0];
+    if (!user) {
+        throw new Error('Failed to create user');
+    }
+    return { id: user.id };
 }
 export async function getUserById(db, id) {
     const result = await db.query(`
@@ -13,9 +17,9 @@ export async function getUserById(db, id) {
     FROM users
     WHERE id = $1
     `, [id]);
-    if (result.rowCount === 0) {
+    if (!result.rowCount || result.rowCount === 0) {
         return null;
     }
-    return result.rows[0];
+    return result.rows[0] ?? null;
 }
 //# sourceMappingURL=queries.js.map

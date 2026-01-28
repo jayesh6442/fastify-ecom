@@ -1,2 +1,2 @@
-import "fein-log";
+export {};
 //# sourceMappingURL=server.d.ts.map

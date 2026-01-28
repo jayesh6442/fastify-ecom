@@ -28,7 +28,6 @@ async function runMigrations() {
             if (appliedSet.has(file)) continue;
             const sql = fs.readFileSync(path.join(dir, file), 'utf8');
             await client.query(sql);
-            console.log(sql);
             await client.query(
                 'INSERT INTO schema_migrations (version) VALUES ($1)',
                 [file]
@@ -41,7 +40,6 @@ async function runMigrations() {
         throw err;
     } finally {
         client.release();
-        console.log("done");
     }
 }
 

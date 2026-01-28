@@ -12,22 +12,26 @@ export async function createOrder(
     try {
         await client.query('BEGIN');
 
-        // 1️⃣ Check for existing order
+        // Check for existing order with same idempotency key
         const existing = await client.query<{ id: number }>(
             `
       SELECT id
       FROM orders
-      WHERE idempotency_key = $1 `,
+      WHERE idempotency_key = $1
+      `,
             [idempotencyKey]
         );
-        // @ts-ignore
-        if (existing.rowCount > 0) {
+
+        if (existing.rowCount && existing.rowCount > 0) {
             await client.query('ROLLBACK');
-            // @ts-ignore
-            return { order_id: existing.rows[0].id };
+            const existingOrder = existing.rows[0];
+            if (!existingOrder) {
+                throw new Error('Unexpected error: order exists but row is missing');
+            }
+            return { order_id: existingOrder.id };
         }
 
-        // 2️⃣ Lock inventory
+        // Lock inventory row
         const inventoryRes = await client.query<{ quantity: number }>(
             `
       SELECT quantity
@@ -38,15 +42,20 @@ export async function createOrder(
             [productId]
         );
 
-        if (inventoryRes.rowCount === 0) {
+        if (!inventoryRes.rowCount || inventoryRes.rowCount === 0) {
             throw new Error('Inventory not found');
         }
-        // @ts-ignore
-        if (inventoryRes.rows[0].quantity < qty) {
+
+        const inventory = inventoryRes.rows[0];
+        if (!inventory) {
+            throw new Error('Unexpected error: inventory row is missing');
+        }
+
+        if (inventory.quantity < qty) {
             throw new Error('Insufficient inventory');
         }
 
-        // 3️⃣ Update inventory
+        // Update inventory
         await client.query(
             `
       UPDATE inventory
@@ -56,7 +65,7 @@ export async function createOrder(
             [qty, productId]
         );
 
-        // 4️⃣ Insert order
+        // Insert order
         const orderRes = await client.query<{ id: number }>(
             `
       INSERT INTO orders (user_id, status, total_cents, idempotency_key)
@@ -67,8 +76,13 @@ export async function createOrder(
         );
 
         await client.query('COMMIT');
-        // @ts-ignore
-        return { order_id: orderRes.rows[0].id };
+
+        const order = orderRes.rows[0];
+        if (!order) {
+            throw new Error('Failed to create order');
+        }
+
+        return { order_id: order.id };
     } catch (err) {
         await client.query('ROLLBACK');
         throw err;

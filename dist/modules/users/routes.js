@@ -1,5 +1,5 @@
 import { createUserBody, userResponse } from "./schemas.js";
-import { createUserHandler, getUserHandler } from "./handelers.js";
+import { createUserHandler, getUserHandler } from "./handlers.js";
 export async function userRoutes(app) {
     // POST /users
     app.post('/users', {

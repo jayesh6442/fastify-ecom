@@ -1,19 +1,7 @@
-// // src/app.ts
-// import Fastify from 'fastify';
-// export function buildApp() {
-//     const app = Fastify({
-//         logger: true,
-//         disableRequestLogging: false,
-//         requestTimeout: 30_000
-//     });
-//     app.get('/health', async () => {
-//         return { status: 'ok' };
-//     });
-//     return app;
-// }
 import Fastify from 'fastify';
-import { dbPlugin } from './plugins/db.js';
-import { orderRoutes, productRoutes } from './modules/products/route.js';
+import dbPlugin from './plugins/db.js';
+import { productRoutes } from './modules/products/route.js';
+import { orderRoutes } from './modules/orders/routes.js';
 import { userRoutes } from './modules/users/routes.js';
 export function buildApp() {
     const app = Fastify({ logger: true });

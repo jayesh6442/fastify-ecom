@@ -1,6 +1,5 @@
-import type { FastifyRequest } from 'fastify';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { createProduct, listProducts } from './query.js';
-import { createOrder } from '../orders/query.js';
 
 type ListRequest = FastifyRequest<{
     Querystring: {
@@ -28,59 +27,22 @@ export async function createProductHandler(
             price_cents: number;
             initial_quantity: number;
         };
-    }>
+    }>,
+    reply: FastifyReply
 ) {
     const { name, price_cents, initial_quantity } = request.body;
 
-    return createProduct(
-        request.server.db,
-        name,
-        price_cents,
-        initial_quantity
-    );
-
-
-}
-
-
-
-type CreateOrderRequest = FastifyRequest<{
-    Body: {
-        user_id: number;
-        product_id: number;
-        quantity: number;
-    };
-}>;
-
-// export async function createOrderHandler(
-//     request: CreateOrderRequest
-// ) {
-//     const { user_id, product_id, quantity } = request.body;
-
-//     return createOrder(
-//         request.server.db,
-//         user_id,
-//         product_id,
-//         quantity
-//     );
-// }
-
-export async function createOrderHandler(
-    request: CreateOrderRequest
-) {
-    const key = request.headers['idempotency-key'];
-
-    if (!key || typeof key !== 'string') {
-        throw new Error('Missing Idempotency-Key');
+    try {
+        return await createProduct(
+            request.server.db,
+            name,
+            price_cents,
+            initial_quantity
+        );
+    } catch (error) {
+        if (error instanceof Error) {
+            return reply.code(500).send({ error: error.message });
+        }
+        throw error;
     }
-
-    const { user_id, product_id, quantity } = request.body;
-
-    return createOrder(
-        request.server.db,
-        user_id,
-        product_id,
-        quantity,
-        key
-    );
 }

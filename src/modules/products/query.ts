@@ -24,7 +24,6 @@ export async function listProducts(
     return result.rows;
 }
 
-// ✅ ADD THIS BELOW — WRITE PATH
 export async function createProduct(
     db: Pool,
     name: string,
@@ -44,8 +43,11 @@ export async function createProduct(
       `,
             [name, priceCents]
         );
-        // @ts-ignore
-        const productId = productRes.rows[0].id;
+
+        const productId = productRes.rows[0]?.id;
+        if (!productId) {
+            throw new Error('Failed to create product');
+        }
 
         await client.query(
             `
@@ -58,73 +60,6 @@ export async function createProduct(
         await client.query('COMMIT');
 
         return { id: productId };
-    } catch (err) {
-        await client.query('ROLLBACK');
-        throw err;
-    } finally {
-        client.release();
-    }
-}
-
-
-
-export async function createOrder(
-    db: Pool,
-    userId: number,
-    productId: number,
-    qty: number
-) {
-    const client = await db.connect();
-
-    try {
-        await client.query('BEGIN');
-
-        // 🔒 Lock inventory row
-        const inventoryRes = await client.query<{
-            quantity: number;
-        }>(
-            `
-      SELECT quantity
-      FROM inventory
-      WHERE product_id = $1
-      FOR UPDATE
-      `,
-            [productId]
-        );
-
-        if (inventoryRes.rowCount === 0) {
-            throw new Error('Inventory not found');
-        }
-        // @ts-ignore
-        const available = inventoryRes.rows[0].quantity;
-
-        if (available < qty) {
-            throw new Error('Insufficient inventory');
-        }
-
-        // Reduce inventory
-        await client.query(
-            `
-      UPDATE inventory
-      SET quantity = quantity - $1
-      WHERE product_id = $2
-      `,
-            [qty, productId]
-        );
-
-        // Create order
-        const orderRes = await client.query<{ id: number }>(
-            `
-      INSERT INTO orders (user_id, status, total_cents)
-      VALUES ($1, 'CREATED', 0)
-      RETURNING id
-      `,
-            [userId]
-        );
-
-        await client.query('COMMIT');
-        // @ts-ignore
-        return { order_id: orderRes.rows[0].id };
     } catch (err) {
         await client.query('ROLLBACK');
         throw err;

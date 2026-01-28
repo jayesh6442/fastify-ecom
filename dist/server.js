@@ -1,7 +1,4 @@
-// src/server.ts
-import "fein-log";
 import { buildApp } from "./app.js";
-console.log("faaaaaa");
 async function start() {
     const app = buildApp();
     try {

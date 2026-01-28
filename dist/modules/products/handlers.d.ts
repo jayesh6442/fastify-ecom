@@ -1,4 +1,4 @@
-import type { FastifyRequest } from 'fastify';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 type ListRequest = FastifyRequest<{
     Querystring: {
         limit?: number;
@@ -12,18 +12,8 @@ export declare function createProductHandler(request: FastifyRequest<{
         price_cents: number;
         initial_quantity: number;
     };
-}>): Promise<{
+}>, reply: FastifyReply): Promise<{
     id: number;
-}>;
-type CreateOrderRequest = FastifyRequest<{
-    Body: {
-        user_id: number;
-        product_id: number;
-        quantity: number;
-    };
-}>;
-export declare function createOrderHandler(request: CreateOrderRequest): Promise<{
-    order_id: number;
 }>;
 export {};
 //# sourceMappingURL=handlers.d.ts.map
