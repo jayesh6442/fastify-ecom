@@ -1,43 +1,35 @@
-import { registerBody, loginBody, registerAdminBody, authResponse } from './schemas.js';
-import { registerHandler, loginHandler, registerAdminHandler } from './handlers.js';
+import { signUpBody, signInBody, authResponse, meResponse } from './schemas.js';
+import { signUpHandler, signInHandler, meHandler } from './handlers.js';
 export async function authRoutes(app) {
-    app.post('/auth/register', {
+    // Sign-up: register as USER, or ADMIN if admin_secret is valid
+    app.post('/auth/sign-up', {
         schema: {
-            body: registerBody,
-            response: {
-                200: authResponse,
-                409: {
-                    type: 'object',
-                    properties: {
-                        error: { type: 'string' }
-                    }
-                }
-            }
-        }
-    }, registerHandler);
-    app.post('/auth/register-admin', {
-        schema: {
-            body: registerAdminBody,
+            body: signUpBody,
             response: {
                 200: authResponse,
                 403: { type: 'object', properties: { error: { type: 'string' } } },
                 409: { type: 'object', properties: { error: { type: 'string' } } }
             }
         }
-    }, registerAdminHandler);
-    app.post('/auth/login', {
+    }, signUpHandler);
+    // Sign-in: login with email and password
+    app.post('/auth/sign-in', {
         schema: {
-            body: loginBody,
+            body: signInBody,
             response: {
                 200: authResponse,
-                401: {
-                    type: 'object',
-                    properties: {
-                        error: { type: 'string' }
-                    }
-                }
+                401: { type: 'object', properties: { error: { type: 'string' } } }
             }
         }
-    }, loginHandler);
+    }, signInHandler);
+    // Current user from JWT
+    app.get('/auth/me', {
+        schema: {
+            response: {
+                200: meResponse,
+                401: { type: 'object', properties: { error: { type: 'string' } } }
+            }
+        }
+    }, meHandler);
 }
 //# sourceMappingURL=routes.js.map

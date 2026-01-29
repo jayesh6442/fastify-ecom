@@ -1,23 +1,15 @@
-export const registerBody = {
+/** Sign-up: register as USER, or as ADMIN if admin_secret is provided and valid. */
+export const signUpBody = {
     type: 'object',
     required: ['email', 'password'],
-    properties: {
-        email: { type: 'string', format: 'email' },
-        password: { type: 'string', minLength: 8 }
-    }
-};
-
-export const registerAdminBody = {
-    type: 'object',
-    required: ['email', 'password', 'admin_secret'],
     properties: {
         email: { type: 'string', format: 'email' },
         password: { type: 'string', minLength: 8 },
         admin_secret: { type: 'string' }
     }
 };
-
-export const loginBody = {
+/** Sign-in: login with email and password. */
+export const signInBody = {
     type: 'object',
     required: ['email', 'password'],
     properties: {
@@ -38,5 +30,15 @@ export const authResponse = {
                 role: { type: 'string' }
             }
         }
+    }
+};
+
+/** Current user (from JWT). */
+export const meResponse = {
+    type: 'object',
+    properties: {
+        id: { type: 'number' },
+        email: { type: 'string' },
+        role: { type: 'string' }
     }
 };

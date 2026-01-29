@@ -1,21 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { createUserBody, userResponse } from "./schemas.js";
-import { createUserHandler, getUserHandler } from "./handlers.js";
+import { userResponse } from "./schemas.js";
+import { getUserHandler } from "./handlers.js";
 
 export async function userRoutes(app: FastifyInstance) {
-
-    // POST /users
-    app.post(
-        '/users',
-        {
-            schema: {
-                body: createUserBody
-            }
-        },
-        createUserHandler
-    );
-
-    // GET /users/:id
+    // GET /users/:id — fetch user by id (e.g. profile lookup)
     app.get(
         '/users/:id',
         {

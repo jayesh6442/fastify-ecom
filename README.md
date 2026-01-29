@@ -20,9 +20,9 @@ A production-ready e-commerce backend API built with Fastify, PostgreSQL, and Ty
 
 ## End-to-end flow
 
-1. **Admin** – Register with `POST /v1/auth/register-admin` (email, password, admin_secret). Login with `POST /v1/auth/login`.
+1. **Admin** – Sign up with `POST /v1/auth/sign-up` (email, password, admin_secret). Sign in with `POST /v1/auth/sign-in`.
 2. **Admin** – Add product: `POST /v1/products` (name, price_cents, initial_quantity). Add/remove stock: `POST /v1/inventory/:productId/add` or `.../remove`.
-3. **User** – Register: `POST /v1/auth/register`. Login: `POST /v1/auth/login`.
+3. **User** – Sign up: `POST /v1/auth/sign-up` (email, password). Sign in: `POST /v1/auth/sign-in`.
 4. **User** – Create order: `POST /v1/orders` with `product_id`, `quantity`, optional `shipping_address`, header `Idempotency-Key`.
 5. **User** – Pay: `POST /v1/orders/:id/payment` → get `razorpay_order_id`, `key_id`, `amount`; complete payment on frontend with Razorpay Checkout; then `POST /v1/orders/:id/payment/confirm` with `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`. Or Razorpay webhook marks order PAID.
 6. **Admin** – Update shipping: `PATCH /v1/admin/orders/:id/status` with `status: "PROCESSING"` → then `"SHIPPED"` (optional `tracking_number`) → then `"DELIVERED"`.
@@ -108,11 +108,11 @@ All routes are versioned under `/v1`:
 ### Public
 - `GET /health` - Health check
 - `GET /v1/products` - List products
-- `POST /v1/auth/register` - Register user
-- `POST /v1/auth/register-admin` - Register admin (body: `email`, `password`, `admin_secret`)
-- `POST /v1/auth/login` - Login user
+- `POST /v1/auth/sign-up` - Sign up (body: `email`, `password`; optional `admin_secret` for admin)
+- `POST /v1/auth/sign-in` - Sign in (body: `email`, `password`)
 
 ### User (requires auth)
+- `GET /v1/auth/me` - Current user from JWT
 - `POST /v1/orders` - Create order (body: `product_id`, `quantity`, optional `shipping_address`; header: `Idempotency-Key`)
 - `GET /v1/orders/:id` - Get order (includes shipping & tracking)
 - `GET /v1/me/orders` - List user orders

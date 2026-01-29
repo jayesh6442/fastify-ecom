@@ -1,13 +1,3 @@
-export declare const createUserBody: {
-    type: string;
-    required: string[];
-    properties: {
-        email: {
-            type: string;
-            format: string;
-        };
-    };
-};
 export declare const userResponse: {
     type: string;
     properties: {

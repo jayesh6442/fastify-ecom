@@ -1,18 +1,5 @@
-export declare const registerBody: {
-    type: string;
-    required: string[];
-    properties: {
-        email: {
-            type: string;
-            format: string;
-        };
-        password: {
-            type: string;
-            minLength: number;
-        };
-    };
-};
-export declare const registerAdminBody: {
+/** Sign-up: register as USER, or as ADMIN if admin_secret is provided and valid. */
+export declare const signUpBody: {
     type: string;
     required: string[];
     properties: {
@@ -29,7 +16,8 @@ export declare const registerAdminBody: {
         };
     };
 };
-export declare const loginBody: {
+/** Sign-in: login with email and password. */
+export declare const signInBody: {
     type: string;
     required: string[];
     properties: {
@@ -61,6 +49,21 @@ export declare const authResponse: {
                     type: string;
                 };
             };
+        };
+    };
+};
+/** Current user (from JWT). */
+export declare const meResponse: {
+    type: string;
+    properties: {
+        id: {
+            type: string;
+        };
+        email: {
+            type: string;
+        };
+        role: {
+            type: string;
         };
     };
 };

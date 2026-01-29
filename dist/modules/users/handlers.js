@@ -1,9 +1,4 @@
-import { createUser, getUserById } from "./queries.js";
-export async function createUserHandler(request) {
-    const { email } = request.body;
-    // fake password hash for now
-    return createUser(request.server.db, email, 'noop');
-}
+import { getUserById } from "./queries.js";
 export async function getUserHandler(request, reply) {
     const id = Number(request.params.id);
     if (isNaN(id) || id <= 0) {

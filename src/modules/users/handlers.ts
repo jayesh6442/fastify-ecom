@@ -1,30 +1,11 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { createUser, getUserById } from "./queries.js";
-
-type CreateUserRequest = FastifyRequest<{
-    Body: {
-        email: string;
-    };
-}>;
+import { getUserById } from "./queries.js";
 
 type GetUserRequest = FastifyRequest<{
     Params: {
         id: string;
     };
 }>;
-
-export async function createUserHandler(
-    request: CreateUserRequest
-) {
-    const { email } = request.body;
-
-    // fake password hash for now
-    return createUser(
-        request.server.db,
-        email,
-        'noop'
-    );
-}
 
 export async function getUserHandler(
     request: GetUserRequest,

@@ -13,10 +13,10 @@ describe('Auth', () => {
         await app.close();
     });
 
-    it('should register a new user', async () => {
+    it('should sign up a new user', async () => {
         const response = await app.inject({
             method: 'POST',
-            url: '/v1/auth/register',
+            url: '/v1/auth/sign-up',
             payload: {
                 email: `test-${Date.now()}@example.com`,
                 password: 'test123456',
@@ -33,38 +33,34 @@ describe('Auth', () => {
     it('should reject duplicate email', async () => {
         const email = `test-${Date.now()}@example.com`;
 
-        // First registration
         await app.inject({
             method: 'POST',
-            url: '/v1/auth/register',
+            url: '/v1/auth/sign-up',
             payload: { email, password: 'test123456' },
         });
 
-        // Second registration with same email
         const response = await app.inject({
             method: 'POST',
-            url: '/v1/auth/register',
+            url: '/v1/auth/sign-up',
             payload: { email, password: 'test123456' },
         });
 
         expect(response.statusCode).toBe(409);
     });
 
-    it('should login with valid credentials', async () => {
+    it('should sign in with valid credentials', async () => {
         const email = `test-${Date.now()}@example.com`;
         const password = 'test123456';
 
-        // Register
         await app.inject({
             method: 'POST',
-            url: '/v1/auth/register',
+            url: '/v1/auth/sign-up',
             payload: { email, password },
         });
 
-        // Login
         const response = await app.inject({
             method: 'POST',
-            url: '/v1/auth/login',
+            url: '/v1/auth/sign-in',
             payload: { email, password },
         });
 
@@ -76,7 +72,7 @@ describe('Auth', () => {
     it('should reject invalid credentials', async () => {
         const response = await app.inject({
             method: 'POST',
-            url: '/v1/auth/login',
+            url: '/v1/auth/sign-in',
             payload: {
                 email: 'nonexistent@example.com',
                 password: 'wrongpassword',
