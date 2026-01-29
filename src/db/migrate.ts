@@ -33,7 +33,9 @@ async function runMigrations() {
                 'INSERT INTO schema_migrations (version) VALUES ($1)',
                 [file]
             );
+            console.log("--------------------------------");
             console.log(`Applied migration: ${file}`);
+            console.log("--------------------------------");
         }
         await client.query('COMMIT');
     } catch (err) {
@@ -44,5 +46,10 @@ async function runMigrations() {
     }
 }
 
-
 runMigrations()
+    .then(() => pool.end())
+    .then(() => process.exit(0))
+    .catch((err) => {
+        console.error(err);
+        pool.end().finally(() => process.exit(1));
+    });

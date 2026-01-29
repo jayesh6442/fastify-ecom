@@ -28,7 +28,9 @@ async function runMigrations() {
             const sql = fs.readFileSync(path.join(dir, file), 'utf8');
             await client.query(sql);
             await client.query('INSERT INTO schema_migrations (version) VALUES ($1)', [file]);
+            console.log("--------------------------------");
             console.log(`Applied migration: ${file}`);
+            console.log("--------------------------------");
         }
         await client.query('COMMIT');
     }
@@ -40,5 +42,11 @@ async function runMigrations() {
         client.release();
     }
 }
-runMigrations();
+runMigrations()
+    .then(() => pool.end())
+    .then(() => process.exit(0))
+    .catch((err) => {
+    console.error(err);
+    pool.end().finally(() => process.exit(1));
+});
 //# sourceMappingURL=migrate.js.map
