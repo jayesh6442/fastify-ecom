@@ -5,18 +5,21 @@ import { fileURLToPath } from 'url';
 import { pool } from './pool.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const SCHEMA = 'public';
 async function runMigrations() {
     const client = await pool.connect();
     try {
+        // Set schema before any DDL (must be outside transaction for some PG configs)
+        await client.query(`SET search_path TO ${SCHEMA}`);
         await client.query('BEGIN');
-        // bootstrap migration table
+        // bootstrap migration table (qualified name so PG always has a schema)
         await client.query(`
-            CREATE TABLE IF NOT EXISTS schema_migrations (
+            CREATE TABLE IF NOT EXISTS ${SCHEMA}.schema_migrations (
                 version TEXT PRIMARY KEY,
                 applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
-                )
-                `);
-        const applied = await client.query('SELECT version FROM schema_migrations');
+            )
+        `);
+        const applied = await client.query(`SELECT version FROM ${SCHEMA}.schema_migrations`);
         const appliedSet = new Set(applied.rows.map(r => r.version));
         const dir = path.resolve(process.cwd(), 'src/db/migrations');
         const files = fs.readdirSync(dir).sort();
@@ -27,7 +30,7 @@ async function runMigrations() {
                 continue;
             const sql = fs.readFileSync(path.join(dir, file), 'utf8');
             await client.query(sql);
-            await client.query('INSERT INTO schema_migrations (version) VALUES ($1)', [file]);
+            await client.query(`INSERT INTO ${SCHEMA}.schema_migrations (version) VALUES ($1)`, [file]);
             console.log("--------------------------------");
             console.log(`Applied migration: ${file}`);
             console.log("--------------------------------");

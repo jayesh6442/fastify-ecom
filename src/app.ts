@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import dbPlugin from './plugins/db.js';
 import jwtPlugin from './plugins/jwt.js';
 import errorHandlerPlugin from './plugins/error-handler.js';
@@ -28,6 +29,12 @@ export function buildApp() {
     }
 
     const app = Fastify({ logger: loggerConfig });
+
+    // CORS - allow payment page (e.g. localhost:44143) to call backend
+    app.register(cors, {
+        origin: ['http://localhost:44143'],
+        credentials: true
+    });
 
     // Core plugins
     app.register(dbPlugin);

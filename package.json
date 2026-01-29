@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "jest --config jest.config.cjs --forceExit",
+    "test:watch": "jest --watch --config jest.config.cjs",
+    "test:coverage": "jest --coverage --config jest.config.cjs",
     "build": "tsc -b",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
@@ -18,8 +18,10 @@
   "type": "module",
   "dependencies": {
     "@fastify/caching": "^9.0.3",
+    "@fastify/cors": "^11.2.0",
     "@fastify/jwt": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
+    "@types/cors": "^2.8.19",
     "@types/pg": "^8.16.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",

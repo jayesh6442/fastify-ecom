@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pay Now</title>
+
+  <!-- Razorpay Checkout -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #0f0f0f;
+      color: #fff;
+    }
+
+    button {
+      padding: 14px 28px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #2d7cff;
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="pay-btn">Pay ₹6.90</button>
+
+  <script>
+    const backendOrder =
+{
+    razorpay_order_id: "order_S9itNxR4WeYr8j",
+    key_id: "rzp_test_S9cvHx0OkK68fl",
+    amount: 199998,
+    currency: "INR",
+    receipt: "order_49"
+}
+    document.getElementById("pay-btn").onclick = function () {
+      this.disabled = true;
+
+      const options = {
+        key: backendOrder.key_id,
+        amount: backendOrder.amount,
+        currency: backendOrder.currency,
+        order_id: backendOrder.razorpay_order_id,
+
+        name: "Geeks for Geeks",
+        description: `Order #${backendOrder.receipt.split("_")[1]}`,
+
+        handler: function (response) {
+          /*
+            response:
+            {
+              razorpay_payment_id,
+              razorpay_order_id,
+              razorpay_signature
+            }
+          */
+
+
+          console.log(backendOrder.receipt);
+          fetch(`http://localhost:3000/v1/orders/${backendOrder.receipt.split("_")[1]}/payment/confirm`
+          , {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(response)
+          })
+          .then(r => r.json())
+          .then(data => {
+            alert("Payment verified");
+          })
+          .catch(err => {
+            console.error(err);
+            alert("Payment verification failed");
+          });
+        },
+
+        modal: {
+          ondismiss: function () {
+            document.getElementById("pay-btn").disabled = false;
+          }
+        },
+
+        theme: {
+          color: "#2d7cff"
+        }
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+    };
+  </script>
+
+</body>
+</html>

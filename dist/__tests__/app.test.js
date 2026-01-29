@@ -1,8 +1,10 @@
+import 'dotenv/config';
 import { buildApp } from '../app.js';
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 describe('App', () => {
     let app;
     beforeAll(async () => {
+        process.env.NODE_ENV = 'test';
         app = buildApp();
         await app.ready();
     });
