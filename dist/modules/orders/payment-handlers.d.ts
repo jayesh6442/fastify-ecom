@@ -1,9 +1,10 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 export declare function createPaymentHandler(request: FastifyRequest, reply: FastifyReply): Promise<{
-    payment_intent_id: string;
-    client_secret: string;
+    razorpay_order_id: string;
+    key_id: string;
     amount: number;
     currency: string;
+    receipt: string;
 }>;
 export declare function confirmPaymentHandler(request: FastifyRequest, reply: FastifyReply): Promise<{
     id: number;
@@ -11,4 +12,8 @@ export declare function confirmPaymentHandler(request: FastifyRequest, reply: Fa
     old_status: "CREATED";
     new_status: "PAID" | "CANCELLED";
 }>;
+/** Webhook: rawBody is the raw JSON string for signature verification. */
+export declare function razorpayWebhookHandler(request: FastifyRequest<{
+    Body: string;
+}>, reply: FastifyReply): Promise<never>;
 //# sourceMappingURL=payment-handlers.d.ts.map

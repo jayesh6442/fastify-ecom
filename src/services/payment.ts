@@ -1,52 +1,92 @@
-import Stripe from 'stripe';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_...', {
-    apiVersion: '2025-12-15.clover',
-});
+const keyId = process.env.RAZORPAY_KEY_ID || '';
+const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
 
-export interface PaymentIntent {
+const razorpay = keyId && keySecret
+    ? new Razorpay({ key_id: keyId, key_secret: keySecret })
+    : null;
+
+export const RAZORPAY_KEY_ID = keyId;
+
+export interface RazorpayOrderResult {
     id: string;
-    client_secret: string;
     amount: number;
+    amount_paid: number;
     currency: string;
+    receipt: string;
 }
 
-export async function createPaymentIntent(
-    amountCents: number,
-    orderId: number,
-    metadata?: Record<string, string>
-): Promise<PaymentIntent> {
-    const paymentIntent = await stripe.paymentIntents.create({
-        amount: amountCents,
-        currency: 'usd',
-        metadata: {
-            order_id: orderId.toString(),
-            ...metadata,
-        },
-    });
+/** Razorpay order create params (SDK uses a union type; we use the standard order variant). */
+interface RazorpayOrderCreateParams {
+    amount: number;
+    currency: string;
+    receipt: string;
+    notes?: Record<string, string>;
+}
 
+/** Create a Razorpay order. Amount in paise (INR). */
+export async function createRazorpayOrder(
+    amountPaise: number,
+    receipt: string,
+    metadata?: Record<string, string>
+): Promise<RazorpayOrderResult | null> {
+    if (!razorpay) {
+        return null;
+    }
+    const params: RazorpayOrderCreateParams = {
+        amount: amountPaise,
+        currency: 'INR',
+        receipt,
+        ...(metadata && { notes: metadata }),
+    };
+    const order = await (razorpay.orders.create(params as Parameters<Razorpay['orders']['create']>[0]) as Promise<{
+        id: string;
+        amount: number;
+        amount_paid: number;
+        currency: string;
+        receipt?: string;
+    }>);
     return {
-        id: paymentIntent.id,
-        client_secret: paymentIntent.client_secret || '',
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
+        id: order.id,
+        amount: order.amount,
+        amount_paid: order.amount_paid ?? 0,
+        currency: order.currency,
+        receipt: order.receipt ?? receipt,
     };
 }
 
-export async function confirmPaymentIntent(paymentIntentId: string): Promise<boolean> {
-    try {
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-        return paymentIntent.status === 'succeeded';
-    } catch (error) {
-        return false;
-    }
+/**
+ * Verify payment signature from client.
+ * Client sends razorpay_order_id, razorpay_payment_id, razorpay_signature.
+ */
+export function verifyRazorpayPaymentSignature(
+    razorpayOrderId: string,
+    razorpayPaymentId: string,
+    razorpaySignature: string
+): boolean {
+    if (!keySecret) return false;
+    const body = razorpayOrderId + '|' + razorpayPaymentId;
+    const expected = crypto
+        .createHmac('sha256', keySecret)
+        .update(body)
+        .digest('hex');
+    return expected === razorpaySignature;
 }
 
-export async function cancelPaymentIntent(paymentIntentId: string): Promise<boolean> {
-    try {
-        await stripe.paymentIntents.cancel(paymentIntentId);
-        return true;
-    } catch (error) {
-        return false;
-    }
+/**
+ * Verify webhook signature. Use raw body string and x-razorpay-signature header.
+ */
+export function verifyRazorpayWebhookSignature(
+    rawBody: string,
+    signature: string
+): boolean {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+    if (!secret) return false;
+    const expected = crypto
+        .createHmac('sha256', secret)
+        .update(rawBody)
+        .digest('hex');
+    return expected === signature;
 }

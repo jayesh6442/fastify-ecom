@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { registerBody, loginBody, authResponse } from './schemas.js';
-import { registerHandler, loginHandler } from './handlers.js';
+import { registerBody, loginBody, registerAdminBody, authResponse } from './schemas.js';
+import { registerHandler, loginHandler, registerAdminHandler } from './handlers.js';
 
 export async function authRoutes(app: FastifyInstance) {
     app.post(
@@ -20,6 +20,21 @@ export async function authRoutes(app: FastifyInstance) {
             }
         },
         registerHandler
+    );
+
+    app.post(
+        '/auth/register-admin',
+        {
+            schema: {
+                body: registerAdminBody,
+                response: {
+                    200: authResponse,
+                    403: { type: 'object', properties: { error: { type: 'string' } } },
+                    409: { type: 'object', properties: { error: { type: 'string' } } }
+                }
+            }
+        },
+        registerAdminHandler
     );
 
     app.post(

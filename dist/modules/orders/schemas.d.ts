@@ -10,6 +10,9 @@ export declare const createOrderBody: {
             type: string;
             minimum: number;
         };
+        shipping_address: {
+            type: string;
+        };
     };
 };
 //# sourceMappingURL=schemas.d.ts.map

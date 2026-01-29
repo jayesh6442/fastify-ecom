@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { createOrder, getOrderById, getUserOrders, getAllOrders, updateOrderStatus, restoreInventoryForOrder, getOrderItems } from './query.js';
+import { createOrder, getOrderById, getUserOrders, getAllOrders, updateOrderStatus, updateOrderShippingStatus, restoreInventoryForOrder } from './query.js';
 import { sendOrderConfirmationEmail, sendOrderPaidEmail, sendOrderCancelledEmail } from '../../services/email.js';
 
 export async function createOrderHandler(
@@ -16,8 +16,8 @@ export async function createOrderHandler(
         return reply.code(400).send({ error: 'Missing Idempotency-Key header' });
     }
 
-    const body = request.body as { product_id: number; quantity: number };
-    const { product_id, quantity } = body;
+    const body = request.body as { product_id: number; quantity: number; shipping_address?: string };
+    const { product_id, quantity, shipping_address } = body;
     const user_id = (request.user as { id: number; email: string; role: 'USER' | 'ADMIN' }).id;
 
     try {
@@ -26,7 +26,8 @@ export async function createOrderHandler(
             user_id,
             product_id,
             quantity,
-            key
+            key,
+            shipping_address
         );
 
         // Send order confirmation email
@@ -221,6 +222,48 @@ export async function cancelOrderHandler(
     } catch (error) {
         if (error instanceof Error) {
             if (error.message === 'Order not found' || error.message === 'Inventory not found') {
+                return reply.code(404).send({ error: error.message });
+            }
+            if (error.message.includes('cannot transition')) {
+                return reply.code(400).send({ error: error.message });
+            }
+            return reply.code(500).send({ error: error.message });
+        }
+        throw error;
+    }
+}
+
+export async function updateOrderStatusHandler(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+    const user = request.user as { id: number; role: 'USER' | 'ADMIN' } | undefined;
+    if (!user || user.role !== 'ADMIN') {
+        return reply.code(403).send({ error: 'Forbidden: Admin access required' });
+    }
+
+    const params = request.params as { id: string };
+    const body = request.body as { status: 'PROCESSING' | 'SHIPPED' | 'DELIVERED'; tracking_number?: string };
+    const orderId = Number(params.id);
+
+    if (isNaN(orderId) || orderId <= 0) {
+        return reply.code(400).send({ error: 'Invalid order ID' });
+    }
+    if (!body.status) {
+        return reply.code(400).send({ error: 'Missing status' });
+    }
+
+    try {
+        const result = await updateOrderShippingStatus(
+            request.server.db,
+            orderId,
+            body.status,
+            body.tracking_number
+        );
+        return result;
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.message === 'Order not found') {
                 return reply.code(404).send({ error: error.message });
             }
             if (error.message.includes('cannot transition')) {

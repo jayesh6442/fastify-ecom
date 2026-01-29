@@ -6,7 +6,7 @@ import observabilityPlugin from './plugins/observability.js';
 import rateLimitPlugin from './plugins/rate-limit.js';
 import cachePlugin from './plugins/cache.js';
 import { productRoutes } from './modules/products/route.js';
-import { orderRoutes } from './modules/orders/routes.js';
+import { orderRoutes, webhookRoutes } from './modules/orders/routes.js';
 import { userRoutes } from './modules/users/routes.js';
 import { authRoutes } from './modules/auth/routes.js';
 import { inventoryRoutes } from './modules/inventory/routes.js';
@@ -50,6 +50,7 @@ export function buildApp() {
         app.register(orderRoutes, { prefix: '/v1' });
         app.register(userRoutes, { prefix: '/v1' });
         app.register(inventoryRoutes, { prefix: '/v1' });
+        app.register(webhookRoutes, { prefix: '/v1' });
         app.register(cacheRoutes);
     });
 

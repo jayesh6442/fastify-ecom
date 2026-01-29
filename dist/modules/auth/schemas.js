@@ -6,6 +6,15 @@ export const registerBody = {
         password: { type: 'string', minLength: 8 }
     }
 };
+export const registerAdminBody = {
+    type: 'object',
+    required: ['email', 'password', 'admin_secret'],
+    properties: {
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string', minLength: 8 },
+        admin_secret: { type: 'string' }
+    }
+};
 export const loginBody = {
     type: 'object',
     required: ['email', 'password'],

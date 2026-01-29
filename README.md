@@ -8,7 +8,7 @@ A production-ready e-commerce backend API built with Fastify, PostgreSQL, and Ty
 - ✅ Product Management
 - ✅ Inventory Management with Audit Logging
 - ✅ Order Processing with State Machine
-- ✅ Payment Integration (Stripe)
+- ✅ Payment Integration (Razorpay, India)
 - ✅ Email Notifications
 - ✅ Rate Limiting
 - ✅ API Versioning (v1)
@@ -17,6 +17,18 @@ A production-ready e-commerce backend API built with Fastify, PostgreSQL, and Ty
 - ✅ Observability & Monitoring
 - ✅ Docker Support
 - ✅ CI/CD Pipeline
+
+## End-to-end flow
+
+1. **Admin** – Register with `POST /v1/auth/register-admin` (email, password, admin_secret). Login with `POST /v1/auth/login`.
+2. **Admin** – Add product: `POST /v1/products` (name, price_cents, initial_quantity). Add/remove stock: `POST /v1/inventory/:productId/add` or `.../remove`.
+3. **User** – Register: `POST /v1/auth/register`. Login: `POST /v1/auth/login`.
+4. **User** – Create order: `POST /v1/orders` with `product_id`, `quantity`, optional `shipping_address`, header `Idempotency-Key`.
+5. **User** – Pay: `POST /v1/orders/:id/payment` → get `razorpay_order_id`, `key_id`, `amount`; complete payment on frontend with Razorpay Checkout; then `POST /v1/orders/:id/payment/confirm` with `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`. Or Razorpay webhook marks order PAID.
+6. **Admin** – Update shipping: `PATCH /v1/admin/orders/:id/status` with `status: "PROCESSING"` → then `"SHIPPED"` (optional `tracking_number`) → then `"DELIVERED"`.
+7. **User** – View order and tracking: `GET /v1/orders/:id` or `GET /v1/me/orders`.
+
+Order status flow: **CREATED** → **PAID** → **PROCESSING** → **SHIPPED** → **DELIVERED**. **CANCELLED** only from CREATED.
 
 ## Quick Start
 
@@ -80,14 +92,14 @@ The server will start on `http://localhost:3000`
 
 ## Environment Variables
 
-See [ENV_SETUP.md](./ENV_SETUP.md) for detailed environment variable documentation.
-
-Key variables:
+Key variables (see `.env.example` for a template):
 - `JWT_SECRET` - Required for JWT token signing
 - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` - Database configuration
 - `REDIS_URL` - Redis connection (optional)
 - `SMTP_*` - Email configuration (optional)
-- `STRIPE_SECRET_KEY` - Payment processing (optional)
+- `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` - Razorpay (India) payment
+- `RAZORPAY_WEBHOOK_SECRET` - For webhook signature verification
+- `ADMIN_REGISTRATION_SECRET` - Secret to register admin accounts
 
 ## API Endpoints
 
@@ -97,22 +109,27 @@ All routes are versioned under `/v1`:
 - `GET /health` - Health check
 - `GET /v1/products` - List products
 - `POST /v1/auth/register` - Register user
+- `POST /v1/auth/register-admin` - Register admin (body: `email`, `password`, `admin_secret`)
 - `POST /v1/auth/login` - Login user
 
 ### User (requires auth)
-- `POST /v1/orders` - Create order
-- `GET /v1/orders/:id` - Get order
+- `POST /v1/orders` - Create order (body: `product_id`, `quantity`, optional `shipping_address`; header: `Idempotency-Key`)
+- `GET /v1/orders/:id` - Get order (includes shipping & tracking)
 - `GET /v1/me/orders` - List user orders
-- `POST /v1/orders/:id/pay` - Pay order
-- `POST /v1/orders/:id/cancel` - Cancel order
-- `POST /v1/orders/:id/payment` - Create payment intent
-- `POST /v1/orders/:id/payment/confirm` - Confirm payment
+- `POST /v1/orders/:id/payment` - Create Razorpay order (returns `razorpay_order_id`, `key_id`, `amount` in paise)
+- `POST /v1/orders/:id/payment/confirm` - Confirm payment (body: `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`)
+- `POST /v1/orders/:id/pay` - Mark order paid (manual/testing)
+- `POST /v1/orders/:id/cancel` - Cancel order (CREATED only)
 
 ### Admin (requires admin role)
-- `POST /v1/products` - Create product
+- `POST /v1/products` - Create product (body: `name`, `price_cents`, `initial_quantity`)
 - `POST /v1/inventory/:productId/add` - Add inventory
 - `POST /v1/inventory/:productId/remove` - Remove inventory
 - `GET /v1/admin/orders` - List all orders
+- `PATCH /v1/admin/orders/:id/status` - Update order status (body: `status`: PROCESSING | SHIPPED | DELIVERED, optional `tracking_number`)
+
+### Webhooks
+- `POST /v1/webhooks/razorpay` - Razorpay payment.captured / order.paid (signature verified)
 
 ## Testing
 
@@ -151,20 +168,13 @@ src/
 │   ├── cache.ts    # Caching plugin
 │   └── ...
 ├── services/        # External services
-│   ├── payment.ts  # Stripe integration
+│   ├── payment.ts  # Razorpay integration
 │   └── email.ts    # Email service
 ├── db/              # Database
 │   ├── migrations/ # SQL migrations
 │   └── pool.ts     # Connection pool
 └── __tests__/       # Test files
 ```
-
-## Documentation
-
-- [APPLICATION_OVERVIEW.md](./APPLICATION_OVERVIEW.md) - Complete technical overview
-- [TESTING_GUIDE.md](./TESTING_GUIDE.md) - Detailed testing instructions
-- [ENHANCEMENTS.md](./ENHANCEMENTS.md) - Enhancement features
-- [ENV_SETUP.md](./ENV_SETUP.md) - Environment variables guide
 
 ## Development
 

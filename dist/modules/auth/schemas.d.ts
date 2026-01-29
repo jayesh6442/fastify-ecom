@@ -12,6 +12,23 @@ export declare const registerBody: {
         };
     };
 };
+export declare const registerAdminBody: {
+    type: string;
+    required: string[];
+    properties: {
+        email: {
+            type: string;
+            format: string;
+        };
+        password: {
+            type: string;
+            minLength: number;
+        };
+        admin_secret: {
+            type: string;
+        };
+    };
+};
 export declare const loginBody: {
     type: string;
     required: string[];

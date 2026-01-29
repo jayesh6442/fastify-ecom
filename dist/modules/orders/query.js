@@ -1,4 +1,4 @@
-export async function createOrder(db, userId, productId, qty, idempotencyKey) {
+export async function createOrder(db, userId, productId, qty, idempotencyKey, shippingAddress) {
     const client = await db.connect();
     try {
         await client.query('BEGIN');
@@ -69,10 +69,10 @@ export async function createOrder(db, userId, productId, qty, idempotencyKey) {
       `, [qty, productId]);
         // Insert order
         const orderRes = await client.query(`
-      INSERT INTO orders (user_id, status, total_cents, idempotency_key)
-      VALUES ($1, 'CREATED', $2, $3)
+      INSERT INTO orders (user_id, status, total_cents, idempotency_key, shipping_address)
+      VALUES ($1, 'CREATED', $2, $3, $4)
       RETURNING id
-      `, [userId, totalCents, idempotencyKey]);
+      `, [userId, totalCents, idempotencyKey, shippingAddress ?? null]);
         const order = orderRes.rows[0];
         if (!order) {
             throw new Error('Failed to create order');
@@ -96,6 +96,8 @@ export async function createOrder(db, userId, productId, qty, idempotencyKey) {
 export async function getOrderById(db, orderId, userId) {
     let query = `
     SELECT o.id, o.user_id, o.status, o.total_cents, o.created_at,
+           o.shipping_address, o.tracking_number, o.shipped_at, o.delivered_at,
+           o.razorpay_order_id, o.razorpay_payment_id,
            COALESCE(
              json_agg(
                json_build_object(
@@ -126,7 +128,7 @@ export async function getOrderById(db, orderId, userId) {
 }
 export async function getUserOrders(db, userId, limit = 20, offset = 0) {
     const result = await db.query(`
-    SELECT id, user_id, status, total_cents, created_at
+    SELECT id, user_id, status, total_cents, created_at, shipping_address, tracking_number, shipped_at, delivered_at
     FROM orders
     WHERE user_id = $1
     ORDER BY created_at DESC
@@ -136,41 +138,83 @@ export async function getUserOrders(db, userId, limit = 20, offset = 0) {
 }
 export async function getAllOrders(db, limit = 20, offset = 0) {
     const result = await db.query(`
-    SELECT id, user_id, status, total_cents, created_at
+    SELECT id, user_id, status, total_cents, created_at, shipping_address, tracking_number, shipped_at, delivered_at
     FROM orders
     ORDER BY created_at DESC
     LIMIT $1 OFFSET $2
     `, [limit, offset]);
     return result.rows;
 }
-export async function updateOrderStatus(db, orderId, newStatus, expectedStatus) {
+export async function updateOrderStatus(db, orderId, newStatus, expectedStatus, razorpayIds) {
     const client = await db.connect();
     try {
         await client.query('BEGIN');
-        // Lock and check current status
-        const currentRes = await client.query(`
-      SELECT id, status, user_id
-      FROM orders
-      WHERE id = $1
-      FOR UPDATE
-      `, [orderId]);
+        const currentRes = await client.query(`SELECT id, status, user_id FROM orders WHERE id = $1 FOR UPDATE`, [orderId]);
         if (!currentRes.rowCount || currentRes.rowCount === 0) {
             throw new Error('Order not found');
         }
         const current = currentRes.rows[0];
-        if (!current) {
-            throw new Error('Unexpected error: order row is missing');
-        }
-        // Validate state transition
         if (current.status !== expectedStatus) {
             throw new Error(`Order cannot transition from ${current.status} to ${newStatus}`);
         }
-        // Update status
-        await client.query(`
-      UPDATE orders
-      SET status = $1
-      WHERE id = $2
-      `, [newStatus, orderId]);
+        if (newStatus === 'PAID' && razorpayIds) {
+            await client.query(`UPDATE orders SET status = $1, razorpay_order_id = $2, razorpay_payment_id = $3 WHERE id = $4`, [newStatus, razorpayIds.order_id, razorpayIds.payment_id, orderId]);
+        }
+        else {
+            await client.query(`UPDATE orders SET status = $1 WHERE id = $2`, [newStatus, orderId]);
+        }
+        await client.query('COMMIT');
+        return {
+            id: current.id,
+            user_id: current.user_id,
+            old_status: current.status,
+            new_status: newStatus
+        };
+    }
+    catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    }
+    finally {
+        client.release();
+    }
+}
+export async function setOrderRazorpayOrderId(db, orderId, razorpayOrderId) {
+    await db.query(`UPDATE orders SET razorpay_order_id = $1 WHERE id = $2`, [razorpayOrderId, orderId]);
+}
+export async function getOrderByRazorpayOrderId(db, razorpayOrderId) {
+    const result = await db.query(`SELECT id, status, user_id FROM orders WHERE razorpay_order_id = $1`, [razorpayOrderId]);
+    if (!result.rowCount || result.rowCount === 0)
+        return null;
+    return result.rows[0] ?? null;
+}
+const VALID_TRANSITIONS = {
+    PAID: ['PROCESSING'],
+    PROCESSING: ['SHIPPED'],
+    SHIPPED: ['DELIVERED']
+};
+export async function updateOrderShippingStatus(db, orderId, newStatus, trackingNumber) {
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+        const currentRes = await client.query(`SELECT id, status, user_id FROM orders WHERE id = $1 FOR UPDATE`, [orderId]);
+        if (!currentRes.rowCount || currentRes.rowCount === 0) {
+            throw new Error('Order not found');
+        }
+        const current = currentRes.rows[0];
+        const allowed = VALID_TRANSITIONS[current.status];
+        if (!allowed || !allowed.includes(newStatus)) {
+            throw new Error(`Order cannot transition from ${current.status} to ${newStatus}`);
+        }
+        if (newStatus === 'SHIPPED') {
+            await client.query(`UPDATE orders SET status = $1, tracking_number = $2, shipped_at = now() WHERE id = $3`, [newStatus, trackingNumber ?? null, orderId]);
+        }
+        else if (newStatus === 'DELIVERED') {
+            await client.query(`UPDATE orders SET status = $1, delivered_at = now() WHERE id = $2`, [newStatus, orderId]);
+        }
+        else {
+            await client.query(`UPDATE orders SET status = $1 WHERE id = $2`, [newStatus, orderId]);
+        }
         await client.query('COMMIT');
         return {
             id: current.id,

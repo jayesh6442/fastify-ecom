@@ -35,6 +35,40 @@ export async function registerHandler(request, reply) {
         throw error;
     }
 }
+export async function registerAdminHandler(request, reply) {
+    const { email, password, admin_secret } = request.body;
+    const expectedSecret = process.env.ADMIN_REGISTRATION_SECRET;
+    if (!expectedSecret || admin_secret !== expectedSecret) {
+        return reply.code(403).send({ error: 'Invalid admin secret' });
+    }
+    try {
+        const existing = await getUserByEmail(request.server.db, email);
+        if (existing) {
+            return reply.code(409).send({ error: 'User already exists' });
+        }
+        const passwordHash = await bcrypt.hash(password, 10);
+        const user = await createUser(request.server.db, email, passwordHash, 'ADMIN');
+        const token = request.server.jwt.sign({
+            id: user.id,
+            email,
+            role: 'ADMIN'
+        });
+        return {
+            token,
+            user: {
+                id: user.id,
+                email,
+                role: 'ADMIN'
+            }
+        };
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            return reply.code(500).send({ error: error.message });
+        }
+        throw error;
+    }
+}
 export async function loginHandler(request, reply) {
     const { email, password } = request.body;
     try {
