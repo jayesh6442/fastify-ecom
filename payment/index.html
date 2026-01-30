@@ -40,12 +40,12 @@
 
   <script>
     const backendOrder =
-{
-    razorpay_order_id: "order_S9itNxR4WeYr8j",
+    {
+    razorpay_order_id: "order_S9y3VCUYpU2DXV",
     key_id: "rzp_test_S9cvHx0OkK68fl",
-    amount: 199998,
+    amount: 690,
     currency: "INR",
-    receipt: "order_49"
+    receipt: "order_4"
 }
     document.getElementById("pay-btn").onclick = function () {
       this.disabled = true;
@@ -74,7 +74,7 @@
           fetch(`http://localhost:3000/v1/orders/${backendOrder.receipt.split("_")[1]}/payment/confirm`
           , {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json" ,"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg0IiwiZW1haWwiOiJhZG1pbkBnbWFpbC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Njk2OTA5MTZ9.epCLhAwq1oz-3LHO0L1qljr_t4VoExAhnLLA6hFoopw" },
             body: JSON.stringify(response)
           })
           .then(r => r.json())

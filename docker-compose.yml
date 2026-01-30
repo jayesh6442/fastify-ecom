@@ -14,6 +14,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - ingress_net
 
   redis:
     image: redis:7-alpine
@@ -26,6 +28,8 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    networks:
+      - ingress_net
 
   app:
     build: .
@@ -56,7 +60,13 @@ services:
     volumes:
       - ./src/db/migrations:/app/dist/db/migrations
     command: sh -c "node dist/db/migrate.js && node dist/server.js"
+    networks:
+      - ingress_net
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  ingress_net:
+    name: ingress_net
