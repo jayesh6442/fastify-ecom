@@ -1,1 +1,0 @@
-{"version":3,"file":"queries.d.ts","sourceRoot":"","sources":["../../../src/modules/inventory/queries.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,IAAI,EAAE,MAAM,IAAI,CAAC;AAE1B,wBAAsB,YAAY,CAC9B,EAAE,EAAE,IAAI,EACR,SAAS,EAAE,MAAM,EACjB,QAAQ,EAAE,MAAM;;;;;GAgEnB;AAED,wBAAsB,eAAe,CACjC,EAAE,EAAE,IAAI,EACR,SAAS,EAAE,MAAM,EACjB,QAAQ,EAAE,MAAM;;;;;GAqEnB"}

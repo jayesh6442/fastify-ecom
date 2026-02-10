@@ -37,3 +37,4 @@ logs/
 docker-compose.override.yml
 .cursor
 .vscode
+.dist
