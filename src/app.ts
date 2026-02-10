@@ -32,7 +32,7 @@ export function buildApp() {
 
     // CORS - allow payment page (e.g. localhost:44143) to call backend
     app.register(cors, {
-        origin: ['http://localhost:42645']
+        origin: ['http://localhost:42645', 'http://localhost:3001','http://127.0.0.1:3001']
     });
 
     // Core plugins

@@ -28,7 +28,7 @@ export function buildApp() {
     const app = Fastify({ logger: loggerConfig });
     // CORS - allow payment page (e.g. localhost:44143) to call backend
     app.register(cors, {
-        origin: ['http://localhost:42645']
+        origin: ['http://localhost:42645', 'http://localhost:3001']
     });
     // Core plugins
     app.register(dbPlugin);

@@ -3,7 +3,6 @@ import bcrypt from 'bcrypt';
 import { getUserByEmail } from './queries.js';
 import { createUser } from '../users/queries.js';
 import { requireUser } from '../../utils/auth.js';
-
 type SignUpRequest = FastifyRequest<{
     Body: {
         email: string;
